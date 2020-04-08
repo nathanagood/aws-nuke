@@ -38,12 +38,17 @@ type FeatureFlagGetter interface {
 
 var resourceListers = make(ResourceListers)
 
-func register(name string, lister ResourceLister) {
+// [Option 1]: Add a "deps" parameter here to register dependencies.
+// This isn't too messy, as the developer writing the code to handle
+// the resource can add this at the time. It can default to nothing,
+// so backwards compatibility is perserved.
+func register(name string, lister ResourceLister, deps ...string) {
 	_, exists := resourceListers[name]
 	if exists {
 		panic(fmt.Sprintf("a resource with the name %s already exists", name))
 	}
 
+	// [Option 1]: Change this to a list of structures?
 	resourceListers[name] = lister
 }
 

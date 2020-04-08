@@ -12,7 +12,9 @@ type EKSCluster struct {
 }
 
 func init() {
-	register("EKSCluster", ListEKSClusters)
+	// [Option 1]: developer adds resource names here of resource that
+	// should be deleted before this resource is deleted, if any
+	register("EKSCluster", ListEKSClusters, "EKSNodegroups")
 }
 
 func ListEKSClusters(sess *session.Session) ([]Resource, error) {

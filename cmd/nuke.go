@@ -11,6 +11,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Scanner
+type Scanner interface {
+	// [Option 2]: Adding a scanning strategy to build a queue of items
+	// Then implement different strategies, leaving the existing code
+	// as the default. The strategies should be specified by configuration
+	// or by command line flag.
+	Scan() (Queue, error)
+}
+
 type Nuke struct {
 	Parameters NukeParameters
 	Account    awsutil.Account
@@ -135,6 +144,12 @@ func (n *Nuke) Run() error {
 }
 
 func (n *Nuke) Scan() error {
+	// [Option 2]: Turn the Scan into a Strategy Pattern. Have a list of strategies,
+	// such as Default (function as-is today), CloudFormationBiased (always try to delete
+	// CloudFormation stacks first, then everything else once the stacks have been deleted),
+	// CloudTrailSourced (ignore the Listers to build the list, but use CloudTrail to
+	// populate the list), etc. Properly implemented, new strategies could be developed
+	// over time without too much effort
 	accountConfig := n.Config.Accounts[n.Account.ID()]
 
 	resourceTypes := ResolveResourceTypes(
@@ -178,9 +193,18 @@ func (n *Nuke) Scan() error {
 	fmt.Printf("Scan complete: %d total, %d nukeable, %d filtered.\n\n",
 		queue.CountTotal(), queue.Count(ItemStateNew), queue.Count(ItemStateFiltered))
 
+	// [Option 1] and [Option 2]: sort the queue using a new Sort() method. The Sort() method
+	// would inspect each item for dependencies, and if found, would put the item
+	// last in the list.
 	n.items = queue
 
 	return nil
+}
+
+// Sort the items in the queue for a soft order for removal
+func (n *Nuke) Sort() {
+	// [Option 1] and [Option 2]: add a sort here to sort items by checking to see if
+	// they have dependencies, and if they do, put them last in the list.
 }
 
 func (n *Nuke) Filter(item *Item) error {
@@ -261,6 +285,9 @@ func (n *Nuke) HandleQueue() {
 }
 
 func (n *Nuke) HandleRemove(item *Item) {
+	// [Option 1]: Check to see if the item is removable first by getting the dependency
+	// and then checking the internal queue to make sure all the types are removed.
+	// If they aren't remove, just re-queue the item
 	err := item.Resource.Remove()
 	if err != nil {
 		item.State = ItemStateFailed
